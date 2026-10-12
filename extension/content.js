@@ -4,6 +4,9 @@
 // gerando.
 (function () {
   'use strict';
+  // Injetado de novo pela mesma versão da extensão (ver background.js, onInstalled): não roda duas vezes.
+  if (globalThis.__habblaudContent) return;
+  globalThis.__habblaudContent = true;
   const { readState } = globalThis.HabblaudSites;
   const TICK_MS = 1_000;
   const HEARTBEAT_MS = 25_000;

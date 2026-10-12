@@ -1,12 +1,19 @@
 {
   "manifest_version": 3,
   "name": "Habblaud Conversas",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Mostra suas conversas do ChatGPT, Claude e Gemini como personagens no escritório do Habblaud. Envia só status e título, nunca o conteúdo.",
-  "permissions": ["storage"],
+  "permissions": [
+    "storage",
+    "scripting"
+  ],
   "host_permissions": [
     "http://localhost/*",
-    "http://127.0.0.1/*"
+    "http://127.0.0.1/*",
+    "https://chatgpt.com/*",
+    "https://chat.openai.com/*",
+    "https://claude.ai/*",
+    "https://gemini.google.com/*"
   ],
   "background": {
     "service_worker": "background.js"
@@ -19,7 +26,10 @@
         "https://claude.ai/*",
         "https://gemini.google.com/*"
       ],
-      "js": ["sites.js", "content.js"],
+      "js": [
+        "sites.js",
+        "content.js"
+      ],
       "run_at": "document_idle"
     }
   ],
