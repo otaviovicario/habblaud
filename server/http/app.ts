@@ -3,9 +3,11 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { NAME_MAX, parseAppearanceParts, parseCharacterName, parseSeed } from '../../shared/appearance';
 import type { AgentInfo, ModSummary, OfficeSnapshot, SourceInfo, UpdateStatus } from '../../shared/types';
 import type { AccountsService } from '../accounts/service';
+import { handleChatEvents } from '../chat/http';
 import { handleCodexEvent } from '../codex/http';
 import type { DayStatsService } from '../history/daystats';
 import type { Office } from '../model/office';
+import type { ChatSource } from '../sources/chat/source';
 import type { CodexLive } from '../sources/codex/live';
 import type { SessionLookup } from '../sources/source';
 import { isJsonContentType, isLoopbackHost } from './guard';
@@ -49,6 +51,11 @@ export interface ApiDeps {
    * não dependem da trava do terminal).
    */
   codexLive?: CodexLive;
+  /**
+   * Conversas de chat (claude.ai, ChatGPT, Gemini...): recebe POST /api/events (server/chat/http.ts). Mesma trava dos
+   * eventos do Codex: Host local e, fora do Docker, conexão pelo loopback.
+   */
+  chat?: ChatSource;
   /** Renomeia a sala (POST /api/rooms/rename {id, name}; vazio volta ao padrão). Devolve o nome em uso, ou undefined se a sala não existe. */
   renameRoom?: (id: string, name: string) => string | undefined;
   /** Estatísticas do "Meu dia" (GET /api/stats, http/stats.ts). */
@@ -257,6 +264,7 @@ export function createApiHandler(deps: ApiDeps): (req: IncomingMessage, res: Ser
           permissions: !!deps.permissions,
           messages: !!deps.messages,
           codexEvents: !!deps.codexLive,
+          chatEvents: !!deps.chat,
           updates: updatesSummary(deps.updates?.status()),
           sources: deps.sources(),
           accounts: accounts.allEntries().map((a) =>
@@ -329,6 +337,15 @@ export function createApiHandler(deps: ApiDeps): (req: IncomingMessage, res: Ser
         }
         handleCharacter(req, res, id, method).catch((err) => fail(res, err));
       }
+      return true;
+    }
+    if (path === '/api/events') {
+      // Eventos das conversas de chat: só observam, mas só valem vindos do próprio computador (como os do Codex).
+      if (method !== 'POST') methodNotAllowed(res, 'POST');
+      else if (!deps.chat) sendJson(res, 503, { error: 'conversas de chat desligadas (HABBLAUD_CHAT=0)' });
+      else if (!isLoopbackHost(req.headers.host) || (!deps.inDocker && !isLoopbackAddress(req.socket.remoteAddress))) {
+        sendJson(res, 403, { error: 'eventos só são aceitos pelo próprio computador (http://localhost ou http://127.0.0.1)' });
+      } else handleChatEvents(req, res, deps.chat).catch((err) => fail(res, err));
       return true;
     }
     if (path === '/api/codex/events') {

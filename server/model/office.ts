@@ -317,7 +317,7 @@ export class Office {
     const roomId = normalizeCwd(p.cwd);
     this.ensureRoom(roomId, now);
     const chosen = this.roomCharacter(roomId, p.id, p.sessionId);
-    const person = chosen ?? this.deps.names.assign(p.sessionId, this.takenNames());
+    const person = chosen ?? this.deps.names.assign(p.sessionId, this.takenNames(undefined, p.sessionId));
     const info: AgentInfo = {
       id: p.id,
       kind: 'main',
@@ -995,9 +995,17 @@ export class Office {
   }
 
   /** Nomes que o sorteio não pode dar: os de quem está no escritório (menos `exceptId`) e os escolhidos para as salas. */
-  private takenNames(exceptId?: string): Set<string> {
+  /**
+   * Nomes em uso. `sameSession`: o próprio agente saindo com a mesma sessão (ex.: uma conversa de chat que trocou de
+   * sala) não segura o nome, para a mesma pessoa chegar na sala nova.
+   */
+  private takenNames(exceptId?: string, sameSession?: string): Set<string> {
     const used = new NameSet();
-    for (const r of this.agents.values()) if (r.info.id !== exceptId) used.add(r.info.name);
+    for (const r of this.agents.values()) {
+      if (r.info.id === exceptId) continue;
+      if (sameSession && r.info.sessionId === sameSession && r.info.status === 'offline') continue;
+      used.add(r.info.name);
+    }
     for (const a of this.demoSnap?.agents ?? []) used.add(a.name);
     for (const n of this.deps.names.reservedNames().keys()) used.add(n);
     return used;

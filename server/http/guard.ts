@@ -126,7 +126,11 @@ export function createRequestGuard(opts: GuardOptions = {}): (req: IncomingMessa
     const method = req.method ?? 'GET';
     if (method === 'GET' || method === 'HEAD' || method === 'OPTIONS') return false;
     const origin = typeof req.headers.origin === 'string' ? req.headers.origin : undefined;
-    if (!originAllowed(origin, host, allowed)) {
+    const path0 = (req.url ?? '/').split('?')[0];
+    // Extensão do navegador (chrome-extension://<id>): só no POST /api/events, que só observa e ainda exige Host local
+    // e conexão pelo loopback (http/app.ts). Uma página da web comum nunca tem essa origem.
+    const fromExtension = path0 === '/api/events' && !!origin && /^chrome-extension:\/\/[a-p]{32}$/.test(origin);
+    if (!fromExtension && !originAllowed(origin, host, allowed)) {
       reject(res, 403, 'Origem não permitida.');
       return true;
     }

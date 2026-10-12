@@ -50,6 +50,8 @@ export interface ServerConfig {
   updateCheck: boolean;
   /** Observa as sessões do Codex (sources/codex/); HABBLAUD_CODEX=0 desliga. */
   codex: boolean;
+  /** Conversas de chat pelo POST /api/events (sources/chat/); HABBLAUD_CHAT=0 desliga. */
+  chat: boolean;
 }
 
 export function isTruthy(v: string | undefined): boolean {
@@ -169,5 +171,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, argv: string[] 
     repo: pkg.repo,
     updateCheck: !env.HABBLAUD_UPDATE_CHECK?.trim() || isTruthy(env.HABBLAUD_UPDATE_CHECK),
     codex: !env.HABBLAUD_CODEX?.trim() || isTruthy(env.HABBLAUD_CODEX),
+    chat: !env.HABBLAUD_CHAT?.trim() || isTruthy(env.HABBLAUD_CHAT),
   };
 }

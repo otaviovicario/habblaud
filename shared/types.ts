@@ -13,8 +13,30 @@ export type AgentKind = 'main' | 'sub';
  * `provider` é opcional e AUSENTE quer dizer 'claude' (tudo o que existia antes do Codex continua igual).
  * - claude: Claude Code;
  * - codex: OpenAI Codex (CLI `codex` e o app desktop, que gravam no mesmo CODEX_HOME).
+ * - claude-web, chatgpt, gemini, web: conversas de chat (claude.ai, ChatGPT, Gemini ou outra IA), que chegam pelo
+ *   POST /api/events (extensão do navegador, simulador ou qualquer integração). Ver server/sources/chat/source.ts.
  */
-export type Provider = 'claude' | 'codex';
+export type Provider = 'claude' | 'codex' | ChatProvider;
+
+/** Provedores de chat (conversas que viram personagens pelo POST /api/events). */
+export type ChatProvider = 'claude-web' | 'chatgpt' | 'gemini' | 'web';
+
+export const CHAT_PROVIDERS: readonly ChatProvider[] = ['claude-web', 'chatgpt', 'gemini', 'web'];
+
+/** Provedor de chat? (as conversas não têm terminal, permissões nem mensagens pelo escritório). */
+export function isChatProvider(p: string | undefined): p is ChatProvider {
+  return !!p && (CHAT_PROVIDERS as readonly string[]).includes(p);
+}
+
+/** Nome de cada provedor nos textos e selo curto da etiqueta do personagem (ausente = sem selo). */
+export const PROVIDER_INFO: Record<Provider, { name: string; badge?: string }> = {
+  claude: { name: 'Claude Code' },
+  codex: { name: 'Codex', badge: 'CODEX' },
+  'claude-web': { name: 'Claude', badge: 'CLAUDE' },
+  chatgpt: { name: 'ChatGPT', badge: 'GPT' },
+  gemini: { name: 'Gemini', badge: 'GEMINI' },
+  web: { name: 'IA', badge: 'IA' },
+};
 
 /**
  * Estado de alto nível de um agente — é o que dirige o comportamento do personagem.

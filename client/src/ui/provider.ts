@@ -3,11 +3,16 @@
 //
 // Identidade visual do Codex (sem logotipo de ninguém): o chip da conta fica "vazado" (fundo escuro, borda e letra na
 // cor da conta, cantos em degrau) e, onde há espaço, um selo de texto "Codex" ao lado do nome.
-import type { AccountInfo, OfficeSnapshot, Provider } from '../../../shared/types';
+import { PROVIDER_INFO, type AccountInfo, type OfficeSnapshot, type Provider } from '../../../shared/types';
 import { shortcutHint } from './model';
 
 /** Nome de cada ferramenta como aparece nos textos. */
-export const PROVIDER_NAME: Record<Provider, string> = { claude: 'Claude Code', codex: 'Codex' };
+export const PROVIDER_NAME = Object.fromEntries(Object.entries(PROVIDER_INFO).map(([k, v]) => [k, v.name])) as Record<Provider, string>;
+
+/** Selo curto da etiqueta do personagem ("CODEX", "GPT", "CLAUDE"...); undefined = sem selo (Claude Code). */
+export function providerBadge(provider: Provider | undefined): string | undefined {
+  return provider ? PROVIDER_INFO[provider]?.badge : undefined;
+}
 
 /** Ferramenta de um agente, conta, sessão ou pedido (ausente = Claude Code). */
 export function providerOf(x: { provider?: Provider } | null | undefined): Provider {
@@ -65,7 +70,7 @@ export function accountChipLabel(account: Pick<AccountInfo, 'name' | 'email' | '
  * shell (a letra de uma conta do Codex não é um atalho); o Codex só entra quando há uma conta dele.
  */
 export function emptyOfficeHint(accounts: readonly Pick<AccountInfo, 'short' | 'provider'>[]): string {
-  const keys = shortcutHint(accounts.filter((a) => !isCodex(a)));
+  const keys = shortcutHint(accounts.filter((a) => providerOf(a) === 'claude'));
   if (!accounts.some(isCodex)) return `Abra o Claude Code em qualquer projeto${keys ? ` (${keys})` : ''} e veja seu agente chegar.`;
   return `Abra o Claude Code${keys ? ` (${keys})` : ''} ou o Codex em qualquer projeto e veja seu agente chegar.`;
 }
