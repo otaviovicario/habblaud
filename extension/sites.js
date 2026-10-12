@@ -63,9 +63,9 @@
       provider: 'claude-web',
       name: 'Claude',
       hosts: ['claude.ai'],
-      /** /chat/<uuid>. */
+      /** /chat/<uuid> (conversa comum) e /code/<sessão> (sessões de trabalho do Claude, como as do app). */
       conversationId(loc) {
-        const m = /\/chat\/([\w-]{8,})/.exec(loc.pathname);
+        const m = /\/(?:chat|code)\/([\w-]{8,})/.exec(loc.pathname);
         return m ? m[1] : undefined;
       },
       title(doc) {

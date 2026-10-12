@@ -69,6 +69,14 @@ describe('sites.js', () => {
     expect(s).toMatchObject({ provider: 'claude-web', conversationId: '0b5c2d4e-aaaa-bbbb-cccc-123456789abc', project: 'Habblaud', generating: true, title: 'Habblaud multi-IA' });
   });
 
+  it('claude.ai: sessões de trabalho em /code/<sessão>', () => {
+    expect(readState(loc('https://claude.ai/code/session_01Cz2FhNgxJMSvikhjzbuazb'), doc('Claude'))).toEqual({
+      provider: 'claude-web',
+      conversationId: 'session_01Cz2FhNgxJMSvikhjzbuazb',
+      generating: false,
+    });
+  });
+
   it('Gemini: /app/<id> e Gem como sala', () => {
     expect(readState(loc('https://gemini.google.com/app/a1b2c3d4e5f6'), doc('Google Gemini'))).toEqual({ provider: 'gemini', conversationId: 'a1b2c3d4e5f6', generating: false });
     expect(readState(loc('https://gemini.google.com/gem/meu-gem/a1b2c3d4e5f6'), doc('Gemini'))?.project).toBe('meu gem');
