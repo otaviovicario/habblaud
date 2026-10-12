@@ -214,7 +214,8 @@ export class UsageCards {
   }
 
   render(): void {
-    const accounts = this.ctx.store.snapshot?.accounts ?? [];
+    // As "contas" das conversas de chat (provider 'web') não têm uso de 5 h e semanal: ficam fora dos cartões de uso.
+    const accounts = (this.ctx.store.snapshot?.accounts ?? []).filter((a) => a.provider !== 'web');
     this.list.sync(accounts);
     this.el.classList.toggle('is-empty', accounts.length === 0);
     setStyleVar(this.el, '--count', String(accounts.length));

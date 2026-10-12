@@ -271,9 +271,10 @@ export class ChatSource implements AgentSource {
       };
       if (a.detail) activity.detail = a.detail;
       office.addActivity(conv.agentId, activity, true);
-      // Uma pergunta nova ou a IA escrevendo = trabalhando (sem precisar de um 'status' separado).
-      if (a.kind === 'prompt' || a.kind === 'think' || a.kind === 'respond') office.setStatus(conv.agentId, 'working');
+      // Qualquer atividade de trabalho (pergunta nova, pensando, pesquisando, escrevendo...) = trabalhando, sem precisar
+      // de um 'status' separado; 'done' encerra o turno. Pergunta, espera e erro não mudam o status.
       if (a.kind === 'done') office.setStatus(conv.agentId, 'idle');
+      else if (a.kind !== 'ask' && a.kind !== 'wait' && a.kind !== 'error') office.setStatus(conv.agentId, 'working');
     }
   }
 
