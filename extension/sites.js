@@ -102,6 +102,30 @@
         return hasStopButton(doc, ['button[aria-label*="Stop response"]', 'button[aria-label*="Parar resposta"]', 'button.stop']);
       },
     },
+    {
+      provider: 'muse',
+      name: 'Muse',
+      hosts: ['muse.ai'],
+      /**
+       * Muse (agente da Meta). O formato do endereço das conversas ainda não foi confirmado: aceita os mais comuns
+       * (/chat/<id>, /c/<id>, /conversation(s)/<id>, /thread(s)/<id>, /t/<id>) e ?conversation= / ?thread= / ?id=.
+       */
+      conversationId(loc) {
+        const m = /\/(?:chat|c|conversations?|threads?|t)\/([\w-]{6,})/.exec(loc.pathname);
+        if (m) return m[1];
+        const q = /[?&](?:conversation|conversationId|thread|threadId|id)=([\w-]{6,})/.exec(loc.search || '');
+        return q ? q[1] : undefined;
+      },
+      title(doc) {
+        return cleanTitle(doc.title, ['Muse', 'Muse AI', 'Meta Muse']);
+      },
+      project() {
+        return undefined;
+      },
+      generating(doc) {
+        return hasStopButton(doc, ['button[aria-label*="Stop"]', 'button[aria-label*="Parar"]']);
+      },
+    },
   ];
 
   /** O site da página (ou undefined fora dos sites conhecidos). */

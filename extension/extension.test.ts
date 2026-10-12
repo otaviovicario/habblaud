@@ -35,7 +35,7 @@ function doc(title: string, els: FakeEl[] = []) {
 
 const loc = (url: string) => {
   const u = new URL(url);
-  return { hostname: u.hostname, pathname: u.pathname };
+  return { hostname: u.hostname, pathname: u.pathname, search: u.search };
 };
 
 describe('sites.js', () => {
@@ -80,6 +80,13 @@ describe('sites.js', () => {
   it('Gemini: /app/<id> e Gem como sala', () => {
     expect(readState(loc('https://gemini.google.com/app/a1b2c3d4e5f6'), doc('Google Gemini'))).toEqual({ provider: 'gemini', conversationId: 'a1b2c3d4e5f6', generating: false });
     expect(readState(loc('https://gemini.google.com/gem/meu-gem/a1b2c3d4e5f6'), doc('Gemini'))?.project).toBe('meu gem');
+  });
+
+  it('Muse: formatos comuns de endereço de conversa', () => {
+    expect(readState(loc('https://muse.ai/chat/abc123def'), doc('Plano - Muse'))).toEqual({ provider: 'muse', conversationId: 'abc123def', generating: false, title: 'Plano' });
+    expect(readState(loc('https://www.muse.ai/c/xyz7890'), doc('Muse'))?.conversationId).toBe('xyz7890');
+    expect(readState(loc('https://muse.ai/?thread=t_123456'), doc('Muse'))?.conversationId).toBe('t_123456');
+    expect(readState(loc('https://muse.ai/'), doc('Muse'))).toEqual({ provider: 'muse' });
   });
 
   it('botões comuns não contam como "parar"', () => {

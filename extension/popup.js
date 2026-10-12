@@ -1,5 +1,5 @@
 // Popup: mostra a conversa da aba ativa, deixa escolher a sala dela e o endereço do Habblaud.
-const NAMES = { chatgpt: 'ChatGPT', 'claude-web': 'Claude', gemini: 'Gemini', web: 'IA' };
+const NAMES = { chatgpt: 'ChatGPT', 'claude-web': 'Claude', gemini: 'Gemini', muse: 'Muse', web: 'IA' };
 const $ = (id) => document.getElementById(id);
 
 function ask(msg) {

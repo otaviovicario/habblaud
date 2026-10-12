@@ -116,7 +116,7 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 
 // Instalou ou atualizou a extensão: as abas de chat já abertas ficaram com o script antigo desconectado (ele para de
 // mandar sinal e a pessoa sai do escritório). Injeta o script de novo nelas, sem precisar recarregar as abas.
-const CHAT_URLS = ['https://chatgpt.com/*', 'https://chat.openai.com/*', 'https://claude.ai/*', 'https://gemini.google.com/*'];
+const CHAT_URLS = ['https://chatgpt.com/*', 'https://chat.openai.com/*', 'https://claude.ai/*', 'https://gemini.google.com/*', 'https://muse.ai/*', 'https://*.muse.ai/*'];
 chrome.runtime.onInstalled.addListener(async () => {
   try {
     const tabs = await chrome.tabs.query({ url: CHAT_URLS });

@@ -12,7 +12,7 @@ simulador (`npm run chat:simulate`) ou qualquer integração que fale HTTP.
   conversa fica gravada em `~/.habblaud/chat-rooms.json`; eventos sem `room` usam a última.
 - **Presença:** a conversa entra com qualquer evento e sai com `close` ou depois de 2 minutos sem nenhum evento (mande
   `heartbeat` enquanto a aba estiver aberta).
-- **Selo da IA** na etiqueta do personagem: CLAUDE, GPT, GEMINI ou IA.
+- **Selo da IA** na etiqueta do personagem: CLAUDE, GPT, GEMINI, MUSE ou IA.
 - Conversas não têm terminal, permissões nem mensagens pelo escritório.
 
 ## Protocolo
@@ -23,7 +23,7 @@ O corpo é um evento ou `{"events": [...]}` (até 50, aplicados em ordem). Respo
 | Campo | Obrigatório | Descrição |
 |---|---|---|
 | `type` | sim | `open`, `status`, `activity`, `heartbeat` ou `close` |
-| `provider` | sim | `claude-web`, `chatgpt`, `gemini` ou `web` |
+| `provider` | sim | `claude-web`, `chatgpt`, `gemini`, `muse` ou `web` |
 | `conversationId` | sim | id da conversa (o da URL); letras, números, `.` `_` `:` `-`, até 200 |
 | `title` | não | título da conversa |
 | `room` | não | sala (assunto), até 40 caracteres |

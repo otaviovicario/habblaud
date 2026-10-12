@@ -136,6 +136,7 @@ const ACCOUNT_LOOK: Record<ChatProvider, { short: string; color: string }> = {
   'claude-web': { short: 'C', color: '#f08a3c' },
   chatgpt: { short: 'O', color: '#5cc97b' },
   gemini: { short: 'G', color: '#4aa8e8' },
+  muse: { short: 'M', color: '#f06fa0' },
   web: { short: 'I', color: '#a77bf3' },
 };
 

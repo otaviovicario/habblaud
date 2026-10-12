@@ -13,15 +13,15 @@ export type AgentKind = 'main' | 'sub';
  * `provider` é opcional e AUSENTE quer dizer 'claude' (tudo o que existia antes do Codex continua igual).
  * - claude: Claude Code;
  * - codex: OpenAI Codex (CLI `codex` e o app desktop, que gravam no mesmo CODEX_HOME).
- * - claude-web, chatgpt, gemini, web: conversas de chat (claude.ai, ChatGPT, Gemini ou outra IA), que chegam pelo
+ * - claude-web, chatgpt, gemini, muse, web: conversas de chat (claude.ai, ChatGPT, Gemini, Muse da Meta ou outra IA), que chegam pelo
  *   POST /api/events (extensão do navegador, simulador ou qualquer integração). Ver server/sources/chat/source.ts.
  */
 export type Provider = 'claude' | 'codex' | ChatProvider;
 
 /** Provedores de chat (conversas que viram personagens pelo POST /api/events). */
-export type ChatProvider = 'claude-web' | 'chatgpt' | 'gemini' | 'web';
+export type ChatProvider = 'claude-web' | 'chatgpt' | 'gemini' | 'muse' | 'web';
 
-export const CHAT_PROVIDERS: readonly ChatProvider[] = ['claude-web', 'chatgpt', 'gemini', 'web'];
+export const CHAT_PROVIDERS: readonly ChatProvider[] = ['claude-web', 'chatgpt', 'gemini', 'muse', 'web'];
 
 /** Provedor de chat? (as conversas não têm terminal, permissões nem mensagens pelo escritório). */
 export function isChatProvider(p: string | undefined): p is ChatProvider {
@@ -35,6 +35,7 @@ export const PROVIDER_INFO: Record<Provider, { name: string; badge?: string }> =
   'claude-web': { name: 'Claude', badge: 'CLAUDE' },
   chatgpt: { name: 'ChatGPT', badge: 'GPT' },
   gemini: { name: 'Gemini', badge: 'GEMINI' },
+  muse: { name: 'Muse', badge: 'MUSE' },
   web: { name: 'IA', badge: 'IA' },
 };
 

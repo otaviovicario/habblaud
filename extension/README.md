@@ -1,6 +1,6 @@
 # Habblaud Conversas (extensão do Chrome)
 
-Mostra suas conversas do **ChatGPT**, **Claude** (claude.ai) e **Gemini** como personagens no escritório do Habblaud.
+Mostra suas conversas do **ChatGPT**, **Claude** (claude.ai), **Gemini** e **Muse** (muse.ai) como personagens no escritório do Habblaud.
 
 - Abriu uma conversa: uma pessoa chega pelo elevador (sempre a mesma pessoa para a mesma conversa).
 - A IA está respondendo: ela senta e digita. Terminou: levanta e vai dar uma volta.
