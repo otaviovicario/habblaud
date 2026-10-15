@@ -31,6 +31,7 @@ import type { AccountsService } from '../../accounts/service';
 import { errMsg, log } from '../../log';
 import type { Office } from '../../model/office';
 import type { AgentSource } from '../source';
+import { memberForTitle, type TeamMember } from './team';
 
 /** Sem nenhum evento por este tempo, a conversa sai (aba fechada sem avisar, navegador fechado, computador dormiu). */
 export const PRESENCE_TIMEOUT_MS = 120_000;
@@ -154,12 +155,22 @@ export interface ChatSourceOptions {
   accounts: AccountsService;
   /** Onde guardar a sala de cada conversa (<dataDir>/chat-rooms.json); ausente = só na memória. */
   roomsFile?: string;
+  /** Equipe fixa (team.ts): agentes sempre presentes, ligados às conversas pelo título. */
+  team?: readonly TeamMember[];
   now?: () => number;
+}
+
+/** Conversa aberta de um agente da equipe fixa. */
+interface TeamConversation {
+  member: TeamMember;
+  lastEventAt: number;
 }
 
 export class ChatSource implements AgentSource {
   readonly provider = 'web' as const;
   private readonly open = new Map<string, Conversation>();
+  /** Conversas abertas dos agentes da equipe fixa, por chave da conversa. */
+  private readonly teamOpen = new Map<string, TeamConversation>();
   private rooms: Record<string, string> = {};
   private timer: ReturnType<typeof setInterval> | null = null;
   private seq = 0;
@@ -179,6 +190,22 @@ export class ChatSource implements AgentSource {
         detected: { id: p, configDir: '', name: PROVIDER_INFO[p].name, ...ACCOUNT_LOOK[p] },
       })),
     );
+    // Equipe fixa: todos no escritório desde já, ociosos, cada um na sua sala e com o nome certo.
+    for (const m of this.opts.team ?? []) {
+      this.opts.office.addMain({
+        id: m.id,
+        provider: m.provider,
+        account: m.provider,
+        sessionId: m.id,
+        cwd: `${CHAT_ROOM_ROOT}/${m.room}`,
+        role: m.role,
+        startedAt: this.now(),
+        status: 'idle',
+        name: m.name,
+        look: m.look,
+      });
+      this.opts.office.applyTranscript(m.id, { title: m.role, tasks: [], stats: { toolCalls: 0, tokensIn: 0, tokensOut: 0, subagents: 0 } });
+    }
     this.timer = setInterval(() => this.expire(), 5_000);
     this.timer.unref?.();
   }
@@ -214,6 +241,23 @@ export class ChatSource implements AgentSource {
     const key = conversationKey(ev.provider, ev.conversationId);
     const at = Math.min(ev.at ?? this.now(), this.now());
     let conv = this.open.get(key);
+
+    // Conversa de um agente da equipe fixa (pelo título, ou porque já foi reconhecida antes): ele trabalha; ninguém
+    // novo entra.
+    const team = this.teamOpen.get(key);
+    const member = team?.member ?? memberForTitle(this.opts.team ?? [], ev.title);
+    if (member) {
+      if (conv) this.leave(conv);
+      if (ev.type === 'close') {
+        this.teamOpen.delete(key);
+        this.teamRest(member);
+        return;
+      }
+      this.teamOpen.set(key, { member, lastEventAt: Math.max(team?.lastEventAt ?? 0, at) });
+      office.setProvider(member.id, ev.provider);
+      this.work(member.id, ev, at);
+      return;
+    }
 
     if (ev.type === 'close') {
       if (conv) this.leave(conv);
@@ -259,24 +303,37 @@ export class ChatSource implements AgentSource {
       });
     }
 
-    if (ev.type === 'status' && ev.status) office.setStatus(conv.agentId, ev.status as AgentStatus, ev.waitingFor);
+    this.work(conv.agentId, ev, at);
+  }
+
+  /** Status e atividade de um evento, no agente `agentId` (conversa comum ou da equipe fixa). */
+  private work(agentId: string, ev: ChatEvent, at: number): void {
+    const office = this.opts.office;
+    if (ev.type === 'status' && ev.status) office.setStatus(agentId, ev.status as AgentStatus, ev.waitingFor);
 
     if (ev.type === 'activity' && ev.activity) {
       const a = ev.activity;
       const activity: Activity = {
-        id: `${conv.agentId}#ev:${at}:${++this.seq}`,
+        id: `${agentId}#ev:${at}:${++this.seq}`,
         kind: a.kind,
         icon: ICONS[a.kind] ?? '💬',
         text: truncate(a.text, 46),
         at,
       };
       if (a.detail) activity.detail = a.detail;
-      office.addActivity(conv.agentId, activity, true);
+      office.addActivity(agentId, activity, true);
       // Qualquer atividade de trabalho (pergunta nova, pensando, pesquisando, escrevendo...) = trabalhando, sem precisar
       // de um 'status' separado; 'done' encerra o turno. Pergunta, espera e erro não mudam o status.
-      if (a.kind === 'done') office.setStatus(conv.agentId, 'idle');
-      else if (a.kind !== 'ask' && a.kind !== 'wait' && a.kind !== 'error') office.setStatus(conv.agentId, 'working');
+      if (a.kind === 'done') office.setStatus(agentId, 'idle');
+      else if (a.kind !== 'ask' && a.kind !== 'wait' && a.kind !== 'error') office.setStatus(agentId, 'working');
     }
+  }
+
+  /** A conversa do agente da equipe fechou (ou sumiu): ele fica no escritório, ocioso, com o selo da IA de sempre. */
+  private teamRest(member: TeamMember): void {
+    if ([...this.teamOpen.values()].some((t) => t.member.id === member.id)) return;
+    this.opts.office.setStatus(member.id, 'idle');
+    this.opts.office.setProvider(member.id, member.provider);
   }
 
   /** Conversas sem sinal de vida há PRESENCE_TIMEOUT_MS saem. */
@@ -284,6 +341,12 @@ export class ChatSource implements AgentSource {
     const now = this.now();
     for (const conv of [...this.open.values()]) {
       if (now - conv.lastEventAt > PRESENCE_TIMEOUT_MS) this.leave(conv);
+    }
+    for (const [key, t] of [...this.teamOpen]) {
+      if (now - t.lastEventAt > PRESENCE_TIMEOUT_MS) {
+        this.teamOpen.delete(key);
+        this.teamRest(t.member);
+      }
     }
   }
 

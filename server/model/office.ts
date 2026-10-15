@@ -99,6 +99,10 @@ export interface MainInput {
   startedAt: number;
   status: AgentStatus;
   waitingFor?: string;
+  /** Nome fixo (equipe fixa, sources/chat/team.ts): usa este nome em vez de sortear um. */
+  name?: string;
+  /** Visual do nome fixo ('f' ou 'm'). */
+  look?: 'f' | 'm';
 }
 
 export interface SubInput {
@@ -316,8 +320,10 @@ export class Office {
     }
     const roomId = normalizeCwd(p.cwd);
     this.ensureRoom(roomId, now);
-    const chosen = this.roomCharacter(roomId, p.id, p.sessionId);
-    const person = chosen ?? this.deps.names.assign(p.sessionId, this.takenNames(undefined, p.sessionId));
+    const chosen = p.name ? undefined : this.roomCharacter(roomId, p.id, p.sessionId);
+    const person = p.name
+      ? { name: p.name, look: p.look ?? 'm' }
+      : (chosen ?? this.deps.names.assign(p.sessionId, this.takenNames(undefined, p.sessionId)));
     const info: AgentInfo = {
       id: p.id,
       kind: 'main',
@@ -347,6 +353,15 @@ export class Office {
     this.agents.set(p.id, rec);
     const acc = this.deps.accountName(p.account);
     this.notice('arrive', p.id, 'info', `👋 ${info.name} chegou em ${this.roomName(roomId)}${acc ? ` (${acc})` : ''}`, roomId);
+    this.markDirty();
+  }
+
+  /** Troca a ferramenta de um agente (equipe fixa: a IA que está fazendo o papel dele agora). */
+  setProvider(id: string, provider: Provider): void {
+    const info = this.agents.get(id)?.info;
+    if (!info || (info.provider ?? 'claude') === provider) return;
+    if (provider === 'claude') delete info.provider;
+    else info.provider = provider;
     this.markDirty();
   }
 

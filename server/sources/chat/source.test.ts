@@ -9,6 +9,7 @@ import { setQuiet } from '../../log';
 import { NameStore } from '../../model/names';
 import { Office } from '../../model/office';
 import { ChatSource, DEFAULT_ROOM, parseChatEvent, PRESENCE_TIMEOUT_MS, type ChatEvent } from './source';
+import { memberForTitle, parseTeam } from './team';
 
 setQuiet(true);
 
@@ -169,5 +170,105 @@ describe('ChatSource', () => {
     const t2 = setup(file);
     t2.ev({ type: 'open' });
     expect(t2.snap().rooms[0].name).toBe('Statlys');
+  });
+});
+
+describe('equipe fixa', () => {
+  const TEAM = parseTeam({
+    salaPadrao: 'Muraca Data Consulting',
+    membros: [
+      { nome: 'Harvey', cargo: 'Vendedor', sala: 'Vendas' },
+      { nome: 'Helena', cargo: 'RH', genero: 'f' },
+      { nome: 'Helena', cargo: 'repetida' },
+      { cargo: 'sem nome' },
+    ],
+  });
+
+  function setupTeam() {
+    let clock = Date.now();
+    const now = () => clock;
+    const late: { office?: Office } = {};
+    const accounts = new AccountsService({ dirs: [], home: tmpdir(), env: {}, now, onChange: () => late.office?.markDirty() });
+    const office = new Office({
+      names: new NameStore(null),
+      version: 'teste',
+      startedAt: clock,
+      accounts: (s) => accounts.list(s),
+      sources: () => [],
+      accountName: (id) => accounts.find(id)?.detected.name,
+      now,
+    });
+    late.office = office;
+    const source = new ChatSource({ office, accounts, team: TEAM, now });
+    source.start();
+    cleanups.push(() => source.stop());
+    return {
+      source,
+      ev: (e: Record<string, unknown>) => source.apply(parseChatEvent({ provider: 'claude-web', conversationId: 'conv-harvey-1', ...e })),
+      advance: (ms: number) => (clock += ms),
+      snap() {
+        office.tick();
+        return office.commit().snapshot;
+      },
+      agent(name: string) {
+        return this.snap().agents.find((a) => a.name === name);
+      },
+    };
+  }
+
+  it('lê o equipe.json: ignora repetidos e sem nome; sala padrão e gênero', () => {
+    expect(TEAM.map((m) => m.name)).toEqual(['Harvey', 'Helena']);
+    expect(TEAM[1]).toMatchObject({ id: 'team:helena', room: 'Muraca Data Consulting', look: 'f', provider: 'claude-web' });
+  });
+
+  it('reconhece a conversa do agente pelo título', () => {
+    expect(memberForTitle(TEAM, 'Harvey · Vendas')?.name).toBe('Harvey');
+    expect(memberForTitle(TEAM, 'harvey (Vendedor)')?.name).toBe('Harvey');
+    expect(memberForTitle(TEAM, 'Héléna')?.name).toBe('Helena');
+    expect(memberForTitle(TEAM, 'Harvey Specter: quem é?')).toBeUndefined();
+    expect(memberForTitle(TEAM, 'Plano do Statlys')).toBeUndefined();
+  });
+
+  it('todos ficam no escritório desde o início, ociosos, com o nome certo e na sala certa', () => {
+    const t = setupTeam();
+    const s = t.snap();
+    expect(s.agents.map((a) => a.name).sort()).toEqual(['Harvey', 'Helena']);
+    expect(s.agents.every((a) => a.status === 'idle')).toBe(true);
+    const harvey = s.agents.find((a) => a.name === 'Harvey')!;
+    expect(s.rooms.find((r) => r.id === harvey.roomId)?.name).toBe('Vendas');
+    expect(harvey.role).toBe('Vendedor');
+  });
+
+  it('a conversa do agente faz ele trabalhar, com o selo da IA dela; fechar devolve ao ócio sem ir embora', () => {
+    const t = setupTeam();
+    t.ev({ type: 'open', title: 'Harvey · Vendas', provider: 'chatgpt' });
+    expect(t.snap().agents).toHaveLength(2);
+    t.ev({ type: 'activity', provider: 'chatgpt', activity: { kind: 'respond', text: 'Escrevendo a resposta' } });
+    expect(t.agent('Harvey')).toMatchObject({ status: 'working', provider: 'chatgpt' });
+    t.ev({ type: 'close', provider: 'chatgpt' });
+    expect(t.agent('Harvey')).toMatchObject({ status: 'idle', provider: 'claude-web' });
+    expect(t.snap().agents).toHaveLength(2);
+  });
+
+  it('aba sem sinal: o agente volta ao ócio, mas continua no escritório', () => {
+    const t = setupTeam();
+    t.ev({ type: 'activity', title: 'Harvey · Vendas', activity: { kind: 'think', text: 'Pensando…' } });
+    expect(t.agent('Harvey')?.status).toBe('working');
+    t.advance(PRESENCE_TIMEOUT_MS + 1_000);
+    t.source.expire();
+    expect(t.agent('Harvey')?.status).toBe('idle');
+    t.advance(24 * 3600_000);
+    t.source.expire();
+    expect(t.agent('Harvey')?.status).toBe('idle');
+  });
+
+  it('conversa que ganhou o título depois: a pessoa sorteada sai e o agente assume', () => {
+    const t = setupTeam();
+    t.ev({ type: 'open' });
+    expect(t.snap().agents.filter((a) => a.status !== 'offline')).toHaveLength(3);
+    t.ev({ type: 'heartbeat', title: 'Harvey · Vendas' });
+    expect(t.snap().agents.filter((a) => a.status !== 'offline')).toHaveLength(2);
+    t.ev({ type: 'activity', activity: { kind: 'respond', text: 'Escrevendo' } });
+    expect(t.agent('Harvey')?.status).toBe('working');
   });
 });

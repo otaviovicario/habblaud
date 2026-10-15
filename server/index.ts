@@ -34,6 +34,7 @@ import { discoverCodexDirs } from './sources/codex/accounts';
 import { CodexHistory } from './sources/codex/history';
 import { CodexSource } from './sources/codex/source';
 import { ChatSource } from './sources/chat/source';
+import { loadTeam } from './sources/chat/team';
 import { createBuildReader } from './build';
 import { UpdateChecker } from './updates/checker';
 
@@ -102,7 +103,11 @@ if (codex) agents.add(codex);
 const codexLive: CodexLive | undefined = codex;
 // Conversas de chat (claude.ai, ChatGPT, Gemini...): chegam pelo POST /api/events (extensão do navegador ou simulador).
 // Uma conversa = uma pessoa fixa; a sala é o assunto. HABBLAUD_CHAT=0 desliga.
-const chat = config.chat ? new ChatSource({ office, accounts, roomsFile: join(config.dataDir, 'chat-rooms.json') }) : undefined;
+// Equipe fixa (sources/chat/team.ts): <dataDir>/equipe.json ou, sem ele, o equipe.json da pasta do Habblaud.
+const team = config.chat ? loadTeam([join(config.dataDir, 'equipe.json'), join(config.rootDir, 'equipe.json')]) : { members: [] };
+const chat = config.chat
+  ? new ChatSource({ office, accounts, roomsFile: join(config.dataDir, 'chat-rooms.json'), team: team.members })
+  : undefined;
 if (chat) agents.add(chat);
 late.office = office;
 late.agents = agents;
@@ -275,6 +280,7 @@ server.listen(config.port, config.host, () => {
   } else {
     log.info(`   Codex: ${config.codex ? 'nenhuma pasta do Codex encontrada (defina HABBLAUD_CODEX_DIRS)' : 'desligado (HABBLAUD_CODEX=0)'}.`);
   }
+  if (team.members.length) log.info(`   Equipe fixa: ${team.members.map((m) => m.name).join(', ')} (${team.file}).`);
   log.info(chat ? '   Conversas de chat: ligadas (POST /api/events; extensão do navegador ou npm run chat:simulate).' : '   Conversas de chat: desligadas (HABBLAUD_CHAT=0).');
   if (office.isDemo()) log.info('   Modo demonstração ligado (agentes simulados misturados aos reais).');
   if (config.terminal) log.info('   Terminal: ligado (acesso só local).');

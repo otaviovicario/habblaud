@@ -1,0 +1,15 @@
+{
+  "salaPadrao": "Muraca Data Consulting",
+  "membros": [
+    { "nome": "Chico", "cargo": "Gerente", "sala": "Gestão", "genero": "m" },
+    { "nome": "Helena", "cargo": "RH", "sala": "Gestão", "genero": "f" },
+    { "nome": "Rita", "cargo": "Controladora de custos", "sala": "Gestão", "genero": "f" },
+    { "nome": "Muse", "cargo": "Secretário pessoal", "sala": "Gestão", "genero": "m" },
+    { "nome": "Duda", "cargo": "Social media", "sala": "Criação", "genero": "f" },
+    { "nome": "Lia", "cargo": "Redatora", "sala": "Criação", "genero": "f" },
+    { "nome": "Iara", "cargo": "Designer", "sala": "Criação", "genero": "f" },
+    { "nome": "Caio", "cargo": "Editor de vídeo", "sala": "Criação", "genero": "m" },
+    { "nome": "Bento", "cargo": "Prospector", "sala": "Vendas", "genero": "m" },
+    { "nome": "Harvey", "cargo": "Vendedor", "sala": "Vendas", "genero": "m" }
+  ]
+}

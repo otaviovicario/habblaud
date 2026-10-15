@@ -44,3 +44,21 @@ curl -X POST http://localhost:4747/api/events -H 'Content-Type: application/json
 ```
 
 `HABBLAUD_CHAT=0` desliga as conversas de chat.
+
+## Equipe fixa (equipe.json)
+
+Agentes com nome, cargo e sala próprios que ficam **sempre** no escritório, ociosos quando ninguém está conversando com
+eles. O servidor lê `~/.habblaud/equipe.json` ou, sem ele, o `equipe.json` da pasta do Habblaud:
+
+```json
+{
+  "salaPadrao": "Minha Agência",
+  "membros": [
+    { "nome": "Harvey", "cargo": "Vendedor", "sala": "Vendas", "genero": "m", "ia": "claude-web" }
+  ]
+}
+```
+
+Uma conversa cujo título começa com o nome do agente seguido de um separador (`Harvey · Vendas`, `Harvey (Vendedor)`,
+`Harvey - follow-ups` ou só `Harvey`) é a conversa dele: o agente senta e trabalha enquanto a IA responde, com o selo da
+IA daquela conversa. Fechou a aba, ele volta ao ócio, mas não vai embora. Reinicie o servidor depois de mudar o arquivo.
