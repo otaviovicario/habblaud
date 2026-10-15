@@ -38,6 +38,21 @@ async function load() {
     : s.project
       ? `Sem sala escolhida: vai para "${s.project}" (o projeto no site).`
       : 'Sem sala escolhida: vai para "Conversas".';
+  // Equipe fixa: escolher de qual agente é esta conversa (vence o título). Com agente, a sala é a dele.
+  const team = info.team || [];
+  if (team.length) {
+    $('member-box').hidden = false;
+    const sel = $('member');
+    for (const m of team) sel.append(Object.assign(document.createElement('option'), { value: m.name, textContent: `${m.name} (${m.role})` }));
+    sel.value = info.member || '';
+    $('room-box').hidden = !!info.member;
+    $('member-hint').textContent = info.member ? `Esta conversa é do ${info.member}.` : 'Se esta conversa é de um agente da equipe, escolha qual.';
+    $('save-member').onclick = async () => {
+      await ask({ type: 'set-member', tabId: tab.id, member: sel.value });
+      $('member-hint').textContent = sel.value ? `Pronto: esta conversa agora é do ${sel.value}.` : 'Pronto: esta conversa não é mais de um agente.';
+      $('room-box').hidden = !!sel.value;
+    };
+  }
   const list = $('rooms');
   list.replaceChildren(...(info.rooms || []).map((r) => Object.assign(document.createElement('option'), { value: r })));
 

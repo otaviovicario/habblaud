@@ -89,6 +89,14 @@ describe('sites.js', () => {
     expect(readState(loc('https://muse.ai/'), doc('Muse'))).toEqual({ provider: 'muse' });
   });
 
+  it('claude.ai: sem nome no título da aba, usa o título do cabeçalho', () => {
+    const s = readState(
+      loc('https://claude.ai/chat/0b5c2d4e-aaaa'),
+      doc('Claude', [{ attrs: {}, text: 'Caio · Editor de vídeo', matches: ['[data-testid="chat-title-button"]'] }]),
+    );
+    expect(s?.title).toBe('Caio · Editor de vídeo');
+  });
+
   it('botões comuns não contam como "parar"', () => {
     const s = readState(loc('https://claude.ai/chat/0b5c2d4e-aaaa'), doc('Claude', [{ attrs: { 'aria-label': 'Copy' }, matches: [] }, { attrs: { 'aria-label': 'Send message' }, matches: [] }]));
     expect(s?.generating).toBe(false);
@@ -118,6 +126,11 @@ describe('translate.js', () => {
     expect(translate(A, { ...A, generating: true })[0]).toMatchObject({ type: 'activity', activity: { kind: 'respond' } });
     expect(translate({ ...A, generating: true }, A)[0]).toMatchObject({ type: 'status', status: 'idle' });
     expect(translate(A, A)[0]).toMatchObject({ type: 'heartbeat' });
+  });
+
+  it('agente da equipe escolhido no popup vai em todos os eventos', () => {
+    expect(translate(undefined, A, undefined, 'Caio')[0]).toMatchObject({ type: 'open', member: 'Caio' });
+    expect(translate(A, A, undefined, 'Caio')[0]).toMatchObject({ type: 'heartbeat', member: 'Caio' });
   });
 
   it('trocou de conversa na mesma aba: fecha a anterior e abre a nova', () => {

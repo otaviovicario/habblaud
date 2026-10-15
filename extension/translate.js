@@ -4,6 +4,7 @@
 //   prev  = último estado conhecido da aba (ou undefined)
 //   state = estado novo: {provider, conversationId?, title?, project?, generating?}
 //   room  = sala escolhida para essa conversa no popup (ou undefined: vale o projeto do site, depois a do servidor)
+//   member = agente da equipe fixa escolhido no popup para essa conversa (ou undefined: o servidor tenta pelo título)
 (function (root) {
   'use strict';
 
@@ -11,15 +12,16 @@
     return s && s.conversationId ? `${s.provider}:${s.conversationId}` : undefined;
   }
 
-  function base(s, room) {
+  function base(s, room, member) {
     const ev = { provider: s.provider, conversationId: s.conversationId };
     if (s.title) ev.title = s.title;
+    if (member) ev.member = member;
     const r = room || s.project;
     if (r) ev.room = r;
     return ev;
   }
 
-  function translate(prev, state, room) {
+  function translate(prev, state, room, member) {
     const events = [];
     const prevKey = convKey(prev);
     const key = convKey(state);
@@ -28,16 +30,16 @@
     }
     if (!key) return events;
     if (prevKey !== key) {
-      events.push({ type: 'open', ...base(state, room) });
-      if (state.generating) events.push({ type: 'activity', ...base(state, room), activity: { kind: 'respond', text: 'Escrevendo a resposta' } });
+      events.push({ type: 'open', ...base(state, room, member) });
+      if (state.generating) events.push({ type: 'activity', ...base(state, room, member), activity: { kind: 'respond', text: 'Escrevendo a resposta' } });
       return events;
     }
     if (state.generating && !prev.generating) {
-      events.push({ type: 'activity', ...base(state, room), activity: { kind: 'respond', text: 'Escrevendo a resposta' } });
+      events.push({ type: 'activity', ...base(state, room, member), activity: { kind: 'respond', text: 'Escrevendo a resposta' } });
     } else if (!state.generating && prev.generating) {
-      events.push({ type: 'status', ...base(state, room), status: 'idle' });
+      events.push({ type: 'status', ...base(state, room, member), status: 'idle' });
     } else {
-      events.push({ type: 'heartbeat', ...base(state, room) });
+      events.push({ type: 'heartbeat', ...base(state, room, member) });
     }
     return events;
   }

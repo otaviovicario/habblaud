@@ -21,6 +21,11 @@ async function getRooms() {
   return rooms || {};
 }
 
+async function getMembers() {
+  const { members } = await chrome.storage.local.get('members');
+  return members || {};
+}
+
 async function getTabs() {
   const { tabs } = await chrome.storage.session.get('tabs');
   return tabs || {};
@@ -60,8 +65,9 @@ async function onState(tabId, state) {
   const tabs = await getTabs();
   const prev = tabs[tabId];
   const rooms = await getRooms();
+  const members = await getMembers();
   const key = convKey(state);
-  await post(translate(prev, state, key ? rooms[key] : undefined));
+  await post(translate(prev, state, key ? rooms[key] : undefined, key ? members[key] : undefined));
   await setTab(tabId, state);
 }
 
@@ -79,7 +85,15 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
       const rooms = await getRooms();
       const key = convKey(state);
       const { status } = await chrome.storage.session.get('status');
-      reply({ state, room: key ? rooms[key] : undefined, rooms: [...new Set(Object.values(rooms))].sort(), url: await getUrl(), status });
+      const members = await getMembers();
+      let team = [];
+      try {
+        const res = await fetch(`${await getUrl()}/api/team`);
+        if (res.ok) team = (await res.json()).members || [];
+      } catch {
+        // Habblaud fora do ar: o popup mostra sem a lista da equipe.
+      }
+      reply({ state, room: key ? rooms[key] : undefined, member: key ? members[key] : undefined, team, rooms: [...new Set(Object.values(rooms))].sort(), url: await getUrl(), status });
     })();
     return true;
   }
@@ -95,6 +109,23 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
       else delete rooms[key];
       await chrome.storage.local.set({ rooms });
       await post([{ type: 'heartbeat', provider: state.provider, conversationId: state.conversationId, ...(state.title ? { title: state.title } : {}), ...(msg.room || state.project ? { room: msg.room || state.project } : {}) }]);
+      reply({ ok: true });
+    });
+    return true;
+  }
+  if (msg && msg.type === 'set-member') {
+    // Popup: esta conversa é de um agente da equipe fixa (ou deixa de ser).
+    enqueue(async () => {
+      const tabs = await getTabs();
+      const state = tabs[msg.tabId];
+      const key = convKey(state);
+      if (!key) return reply({ ok: false });
+      const members = await getMembers();
+      if (msg.member) members[key] = msg.member;
+      else delete members[key];
+      await chrome.storage.local.set({ members });
+      if (!msg.member) await post([{ type: 'close', provider: state.provider, conversationId: state.conversationId }]);
+      await post([{ type: 'open', provider: state.provider, conversationId: state.conversationId, ...(state.title ? { title: state.title } : {}), ...(msg.member ? { member: msg.member } : {}) }]);
       reply({ ok: true });
     });
     return true;

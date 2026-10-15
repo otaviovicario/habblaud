@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Habblaud Conversas",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Mostra suas conversas do ChatGPT, Claude, Gemini e Muse como personagens no escritório do Habblaud. Envia só status e título, nunca o conteúdo.",
   "permissions": [
     "storage",

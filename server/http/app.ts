@@ -339,6 +339,13 @@ export function createApiHandler(deps: ApiDeps): (req: IncomingMessage, res: Ser
       }
       return true;
     }
+    if (path === '/api/team') {
+      // Equipe fixa (nomes, cargos e salas): a extensão mostra no popup para escolher de quem é a conversa.
+      if (method !== 'GET') methodNotAllowed(res, 'GET');
+      else if (!isLoopbackHost(req.headers.host)) sendJson(res, 403, { error: 'só pelo próprio computador' });
+      else sendJson(res, 200, { members: deps.chat?.teamList() ?? [] });
+      return true;
+    }
     if (path === '/api/events') {
       // Eventos das conversas de chat: só observam, mas só valem vindos do próprio computador (como os do Codex).
       if (method !== 'POST') methodNotAllowed(res, 'POST');

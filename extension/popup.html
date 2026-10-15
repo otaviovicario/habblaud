@@ -11,6 +11,7 @@
   .card { background: #1f2533; border-radius: 8px; padding: 10px; display: grid; gap: 6px; }
   label { font-size: 12px; color: #9aa4b8; }
   .row { display: flex; gap: 6px; }
+  select { flex: 1; min-width: 0; background: #0f131b; color: inherit; border: 1px solid #2f3747; border-radius: 6px; padding: 6px 8px; font: inherit; }
   input { flex: 1; min-width: 0; background: #0f131b; color: inherit; border: 1px solid #2f3747; border-radius: 6px; padding: 6px 8px; font: inherit; }
   button { background: #3b6fd8; color: #fff; border: 0; border-radius: 6px; padding: 6px 10px; font: inherit; cursor: pointer; }
   button.secondary { background: #2f3747; }
@@ -29,6 +30,14 @@
     <div id="conv-info" hidden>
       <div class="muted" id="conv-provider"></div>
       <div class="title" id="conv-title"></div>
+    </div>
+    <div id="member-box" hidden>
+      <label for="member">Agente da equipe</label>
+      <div class="row">
+        <select id="member"><option value="">— nenhum —</option></select>
+        <button id="save-member">Salvar</button>
+      </div>
+      <div class="muted" id="member-hint"></div>
     </div>
     <div id="room-box" hidden>
       <label for="room">Sala desta conversa</label>

@@ -262,6 +262,22 @@ describe('equipe fixa', () => {
     expect(t.agent('Harvey')?.status).toBe('idle');
   });
 
+  it('agente escolhido na extensão vence o título: a pessoa sorteada sai e o agente assume', () => {
+    const t = setupTeam();
+    t.ev({ type: 'open', title: 'Edição dos Reels da semana' });
+    expect(t.snap().agents.filter((a) => a.status !== 'offline')).toHaveLength(3);
+    t.ev({ type: 'heartbeat', title: 'Edição dos Reels da semana', member: 'helena' });
+    const live = t.snap().agents.filter((a) => a.status !== 'offline');
+    expect(live.map((a) => a.name).sort()).toEqual(['Harvey', 'Helena']);
+    t.ev({ type: 'activity', member: 'Helena', activity: { kind: 'respond', text: 'Escrevendo' } });
+    expect(t.agent('Helena')?.status).toBe('working');
+    // Trocou de dono no popup: a Helena volta ao ócio e o Harvey assume.
+    t.ev({ type: 'activity', member: 'Harvey', activity: { kind: 'respond', text: 'Escrevendo' } });
+    expect(t.agent('Helena')?.status).toBe('idle');
+    expect(t.agent('Harvey')?.status).toBe('working');
+    expect(t.source.teamList().map((m) => m.name)).toEqual(['Harvey', 'Helena']);
+  });
+
   it('conversa que ganhou o título depois: a pessoa sorteada sai e o agente assume', () => {
     const t = setupTeam();
     t.ev({ type: 'open' });

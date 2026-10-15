@@ -69,7 +69,11 @@
         return m ? m[1] : undefined;
       },
       title(doc) {
-        return cleanTitle(doc.title, ['Claude']);
+        // O título da aba nem sempre traz o nome da conversa: tenta também o botão de título no cabeçalho.
+        const fromTab = cleanTitle(doc.title, ['Claude']);
+        if (fromTab) return fromTab;
+        const el = doc.querySelector('[data-testid="chat-title-button"], [data-testid="chat-menu-trigger"], header button[aria-haspopup] .truncate, header .truncate');
+        return cleanTitle(text(el), ['Claude']);
       },
       project(doc) {
         // Conversa de um Projeto: o cabeçalho tem um link para /project/<id> com o nome do projeto.

@@ -31,7 +31,7 @@ import type { AccountsService } from '../../accounts/service';
 import { errMsg, log } from '../../log';
 import type { Office } from '../../model/office';
 import type { AgentSource } from '../source';
-import { memberForTitle, type TeamMember } from './team';
+import { fold, memberForTitle, type TeamMember } from './team';
 
 /** Sem nenhum evento por este tempo, a conversa sai (aba fechada sem avisar, navegador fechado, computador dormiu). */
 export const PRESENCE_TIMEOUT_MS = 120_000;
@@ -61,6 +61,8 @@ export interface ChatEvent {
   activity?: { kind: ActivityKind; text: string; detail?: string };
   /** Epoch ms; ausente = agora. */
   at?: number;
+  /** Nome do agente da equipe fixa dono desta conversa (escolhido na extensão); vence o título. */
+  member?: string;
 }
 
 const EVENT_TYPES: readonly ChatEventType[] = ['open', 'status', 'activity', 'heartbeat', 'close'];
@@ -119,6 +121,8 @@ export function parseChatEvent(raw: unknown): ChatEvent {
     if (detail) ev.activity.detail = maskSecrets(detail);
   }
   if (typeof r.at === 'number' && Number.isFinite(r.at) && r.at > 0) ev.at = r.at;
+  const member = str(r.member, 24);
+  if (member) ev.member = member;
   return ev;
 }
 
@@ -230,6 +234,11 @@ export class ChatSource implements AgentSource {
     return undefined;
   }
 
+  /** A equipe fixa (GET /api/team: a extensão lista os agentes no popup). */
+  teamList(): Array<{ name: string; role: string; room: string }> {
+    return (this.opts.team ?? []).map((m) => ({ name: m.name, role: m.role, room: m.room }));
+  }
+
   /** Conversas abertas agora (para testes e para o /api/health). */
   openCount(): number {
     return this.open.size;
@@ -245,7 +254,14 @@ export class ChatSource implements AgentSource {
     // Conversa de um agente da equipe fixa (pelo título, ou porque já foi reconhecida antes): ele trabalha; ninguém
     // novo entra.
     const team = this.teamOpen.get(key);
-    const member = team?.member ?? memberForTitle(this.opts.team ?? [], ev.title);
+    const chosen = ev.member ? (this.opts.team ?? []).find((m) => fold(m.name) === fold(ev.member!)) : undefined;
+    // Escolhido na extensão > já reconhecido > pelo título.
+    const member = chosen ?? team?.member ?? memberForTitle(this.opts.team ?? [], ev.title);
+    if (team && member && team.member.id !== member.id) {
+      // A conversa mudou de dono: o antigo volta ao ócio.
+      this.teamOpen.delete(key);
+      this.teamRest(team.member);
+    }
     if (member) {
       if (conv) this.leave(conv);
       if (ev.type === 'close') {
